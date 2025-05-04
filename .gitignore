@@ -1,0 +1,25 @@
+# Node modules (immer lokal installieren, nie ins Repo packen)
+node_modules
+
+# Log-Dateien
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Umgebungsdateien (z. B. API-Keys, Passwörter)
+.env
+
+# Build-Verzeichnisse
+dist
+build
+
+# SQLite-Datenbanken (nur lokal)
+*.db
+*.sqlite
+
+# Uploads (Bilder, die dynamisch hochgeladen werden)
+uploads
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
