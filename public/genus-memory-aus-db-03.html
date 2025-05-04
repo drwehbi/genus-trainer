@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genus Memory Spiel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f0f4f8;
+    }
+    h1 {
+      color: #333;
+    }
+    #controls {
+      margin-bottom: 20px;
+    }
+    .card {
+      width: 100px;
+      height: 100px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px;
+      background-color: #ddd;
+      font-size: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.3s, background-color 0.3s;
+    }
+    .card:hover {
+      transform: scale(1.1);
+    }
+    .flipped {
+      background-color: #ffe0b2;
+      font-weight: bold;
+    }
+    .matched {
+      background-color: #81c784;
+      color: white;
+      cursor: default;
+    }
+    #game-board {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    select, button {
+      padding: 8px 12px;
+      margin: 5px;
+      font-size: 16px;
+    }
+    #status {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Genus Memory Spiel</h1>
+
+  <div id="controls">
+    <label for="difficulty">Schwierigkeitsgrad:</label>
+    <select id="difficulty">
+      <option value="leicht">Leicht (8 Paare)</option>
+      <option value="mittel" selected>Mittel (16 Paare)</option>
+      <option value="schwer">Schwer (32 Paare)</option>
+    </select>
+    <button id="start-btn">Neues Spiel</button>
+    <button id="reset-btn">Zurücksetzen</button>
+  </div>
+
+  <div id="status">
+    ⏱️ Zeit: <span id="timer">0</span> Sekunden |
+    🏆 Highscore (<span id="highscore-level">mittel</span>): <span id="highscore">–</span> Sekunden
+  </div>
+
+  <div id="game-board"></div>
+
+  <script>
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let totalPairs = 0;
+    let gameWords = [];
+    let timer = 0;
+    let timerInterval = null;
+    let currentLevel = 'mittel';
+
+    async function fetchWords(level) {
+      const res = await fetch(`/game-words?level=${level}`);
+      const data = await res.json();
+      return data;
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function createGameBoard(words) {
+      const gameBoard = document.getElementById('game-board');
+      gameBoard.innerHTML = '';
+
+      const cards = [];
+      words.forEach(wordObj => {
+        cards.push({ type: 'article', display: wordObj.genus, match: wordObj.word });
+        cards.push({ type: 'word', display: wordObj.word, match: wordObj.word });
+      });
+
+      shuffleArray(cards).forEach(cardInfo => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.type = cardInfo.type;
+        card.dataset.match = cardInfo.match;
+        card.dataset.display = cardInfo.display;
+        card.textContent = '?';
+        card.addEventListener('click', flipCard);
+        gameBoard.appendChild(card);
+      });
+    }
+
+    function startTimer() {
+      timer = 0;
+      document.getElementById('timer').textContent = timer;
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timer++;
+        document.getElementById('timer').textContent = timer;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    function updateHighscore(level, time) {
+      const key = `highscore_${level}`;
+      const current = localStorage.getItem(key);
+      if (!current || time < current) {
+        localStorage.setItem(key, time);
+        document.getElementById('highscore').textContent = time;
+        alert(`🎉 Neuer Highscore für ${level}: ${time} Sekunden!`);
+      }
+    }
+
+    function loadHighscore(level) {
+      const key = `highscore_${level}`;
+      const score = localStorage.getItem(key);
+      document.getElementById('highscore').textContent = score ? score : '–';
+    }
+
+    function flipCard() {
+      if (flippedCards.length === 2 || this.classList.contains('flipped') || this.classList.contains('matched')) return;
+
+      this.textContent = this.dataset.display;
+      this.classList.add('flipped');
+      flippedCards.push(this);
+
+      if (flippedCards.length === 2) {
+        setTimeout(checkMatch, 800);
+      }
+    }
+
+    function checkMatch() {
+      const [first, second] = flippedCards;
+      if (
+        first.dataset.match === second.dataset.match &&
+        first.dataset.type !== second.dataset.type
+      ) {
+        first.classList.add('matched');
+        second.classList.add('matched');
+        matchedPairs++;
+        if (matchedPairs === totalPairs) {
+          stopTimer();
+          updateHighscore(currentLevel, timer);
+          setTimeout(() => alert('🎉 Du hast alle Paare gefunden!'), 200);
+        }
+      } else {
+        first.textContent = '?';
+        second.textContent = '?';
+        first.classList.remove('flipped');
+        second.classList.remove('flipped');
+      }
+      flippedCards = [];
+    }
+
+    document.getElementById('start-btn').addEventListener('click', async () => {
+      currentLevel = document.getElementById('difficulty').value;
+      document.getElementById('highscore-level').textContent = currentLevel;
+      loadHighscore(currentLevel);
+
+      gameWords = await fetchWords(currentLevel);
+      totalPairs = gameWords.length;
+      matchedPairs = 0;
+
+      createGameBoard(gameWords);
+      startTimer();
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      matchedPairs = 0;
+      flippedCards = [];
+      createGameBoard(gameWords);
+      startTimer();
+    });
+
+    // Lade initial den Highscore für das Standardlevel
+    loadHighscore(currentLevel);
+  </script>
+</body>
+</html>

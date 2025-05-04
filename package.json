@@ -1,0 +1,19 @@
+{
+  "name": "genus-trainer",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "init-db": "node init-db.js"
+  },
+  "dependencies": {
+    "@adminjs/express": "^4.0.1",
+    "@adminjs/sequelize": "^4.1.1",
+    "adminjs": "^7.0.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "sequelize": "^6.32.1",
+    "sqlite3": "^5.1.6"
+  }
+}

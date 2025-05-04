@@ -1,0 +1,113 @@
+<!-- genus-memory.html -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genus Memory Spiel</title>
+  <style>
+    .card {
+      width: 100px;
+      height: 100px;
+      display: inline-block;
+      margin: 10px;
+      background-color: #ddd;
+      text-align: center;
+      line-height: 100px;
+      font-size: 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .flipped {
+      background-color: #f7d7d7;
+    }
+  </style>
+</head>
+<body>
+  <h1>Genus Memory Spiel</h1>
+  <div id="game-board">
+    <!-- Cards werden hier dynamisch generiert -->
+  </div>
+  <button id="reset-btn">Spiel zurücksetzen</button>
+
+  <script>
+    const words = [
+      { word: 'Tisch', genus: 'der' },
+      { word: 'Blume', genus: 'die' },
+      { word: 'Auto', genus: 'das' },
+      { word: 'Hund', genus: 'der' },
+      { word: 'Lampe', genus: 'die' },
+      { word: 'Buch', genus: 'das' }
+    ];
+
+    let flippedCards = [];
+    let matchedPairs = 0;
+
+    // Shuffle Funktion
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]]; // Swap
+      }
+      return arr;
+    }
+
+    // Generiere Memory Cards
+    function createGameBoard() {
+      const gameBoard = document.getElementById("game-board");
+      const cards = [...words, ...words]; // Duplikate für Memory
+      shuffleArray(cards).forEach((word, index) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.setAttribute("data-word", word.word);
+        card.setAttribute("data-genus", word.genus);
+        card.textContent = "?";
+        card.addEventListener("click", flipCard);
+        gameBoard.appendChild(card);
+      });
+    }
+
+    // Karten umdrehen
+    function flipCard() {
+      const card = this;
+      if (flippedCards.length === 2 || card.classList.contains("flipped")) return;
+
+      card.textContent = card.getAttribute("data-genus");
+      card.classList.add("flipped");
+      flippedCards.push(card);
+
+      if (flippedCards.length === 2) {
+        setTimeout(checkMatch, 1000);
+      }
+    }
+
+    // Überprüfen ob Karten übereinstimmen
+    function checkMatch() {
+      const [firstCard, secondCard] = flippedCards;
+
+      if (firstCard.getAttribute("data-genus") === secondCard.getAttribute("data-genus")) {
+        matchedPairs++;
+        if (matchedPairs === words.length) {
+          alert("Du hast gewonnen!");
+        }
+      } else {
+        firstCard.textContent = "?";
+        secondCard.textContent = "?";
+        firstCard.classList.remove("flipped");
+        secondCard.classList.remove("flipped");
+      }
+
+      flippedCards = [];
+    }
+
+    // Reset Spiel
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      matchedPairs = 0;
+      document.getElementById("game-board").innerHTML = "";
+      createGameBoard();
+    });
+
+    createGameBoard();
+  </script>
+</body>
+</html>

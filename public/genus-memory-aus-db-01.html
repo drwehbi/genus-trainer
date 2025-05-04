@@ -1,0 +1,147 @@
+<!-- genus-memory-aus-db.html -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genus Memory Spiel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #game-board {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .card {
+      width: 80px;
+      height: 80px;
+      margin: 5px;
+      background-color: #ddd;
+      text-align: center;
+      line-height: 80px;
+      font-size: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .flipped {
+      background-color: #f7d7d7;
+    }
+  </style>
+</head>
+<body>
+  <h1>Genus Memory Spiel</h1>
+
+  <label for="level">Schwierigkeit:</label>
+  <select id="level">
+    <option value="leicht">Leicht (8 Paare)</option>
+    <option value="mittel" selected>Mittel (16 Paare)</option>
+    <option value="schwer">Schwer (32 Paare)</option>
+  </select>
+  <button id="start-btn">Spiel starten</button>
+  <button id="reset-btn">Zurücksetzen</button>
+
+  <div id="game-board"></div>
+
+  <script>
+    let cards = [];
+    let flippedCards = [];
+    let matchedPairs = 0;
+
+    document.getElementById("start-btn").addEventListener("click", () => {
+      const level = document.getElementById("level").value;
+      startGame(level);
+    });
+
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      const currentLevel = document.getElementById("level").value;
+      startGame(currentLevel);
+    });
+
+    async function startGame(level) {
+      try {
+        matchedPairs = 0;
+        flippedCards = [];
+        const response = await fetch(`/game-words?level=${level}`);
+        const words = await response.json();
+
+        // Erstelle Karten: pro Wort eine Artikelkarte + Wortkarte
+        cards = [];
+        words.forEach((wordObj) => {
+          cards.push({ type: 'article', genus: wordObj.genus, id: wordObj.id });
+          cards.push({ type: 'word', word: wordObj.word, genus: wordObj.genus, id: wordObj.id });
+        });
+
+        shuffleArray(cards);
+        renderBoard();
+      } catch (error) {
+        console.error('Fehler beim Laden:', error);
+      }
+    }
+
+    function renderBoard() {
+      const gameBoard = document.getElementById("game-board");
+      gameBoard.innerHTML = "";
+      cards.forEach((cardObj, index) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.index = index;
+        card.textContent = "?";
+        card.addEventListener("click", flipCard);
+        gameBoard.appendChild(card);
+      });
+    }
+
+    function flipCard() {
+      const cardElement = this;
+      const index = cardElement.dataset.index;
+      const cardData = cards[index];
+
+      if (flippedCards.length === 2 || cardElement.classList.contains("flipped")) return;
+
+      cardElement.textContent = cardData.type === 'article' ? cardData.genus : cardData.word;
+      cardElement.classList.add("flipped");
+      flippedCards.push({ element: cardElement, data: cardData });
+
+      if (flippedCards.length === 2) {
+        setTimeout(checkMatch, 800);
+      }
+    }
+
+    function checkMatch() {
+      const [first, second] = flippedCards;
+
+      if (
+        first.data.id === second.data.id &&
+        first.data.type !== second.data.type
+      ) {
+        matchedPairs++;
+        if (matchedPairs === cards.length / 2) {
+          alert("🎉 Du hast gewonnen!");
+        }
+      } else {
+        first.element.textContent = "?";
+        second.element.textContent = "?";
+        first.element.classList.remove("flipped");
+        second.element.classList.remove("flipped");
+      }
+
+      flippedCards = [];
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+  </script>
+</body>
+</html>
